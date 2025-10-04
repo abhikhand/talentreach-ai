@@ -1,0 +1,33 @@
+/* General font and background */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Style for the main generate button */
+button[data-testid="baseButton-primary"] {
+    background-color: #4F46E5;
+    color: white;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+button[data-testid="baseButton-primary"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+/* Making the expander headers look cleaner */
+[data-testid="stExpander"] summary {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.block-container {
+    padding-top: 2rem;
+}
+
+[data-testid="stTextInput"] .st-helper,
+[data-testid="stTextArea"] .st-helper {
+    display: none;
+}
