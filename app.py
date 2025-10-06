@@ -1,25 +1,35 @@
+# -----------------------------------------------------------------
+# 1. IMPORTS & SETUP
+# -----------------------------------------------------------------
 import streamlit as st
 import openai
 import fitz
 import re
-import uuid
+import yaml
+import streamlit_authenticator as stauth
+import datetime
+from yaml.loader import SafeLoader
 
-# --- Local CSS and PDF Extraction functions remain the same ---
+# -----------------------------------------------------------------
+# 2. HELPER FUNCTIONS
+# -----------------------------------------------------------------
+
 def local_css(file_name):
+    """Loads a local CSS file."""
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 def extract_text_from_pdf(pdf_file):
+    """Extracts text from an uploaded PDF file."""
     try:
         pdf_document = fitz.open(stream=pdf_file.read(), filetype="pdf")
-        text = "".join(page.get_text() for page in pdf_document)
-        return text
+        return "".join(page.get_text() for page in pdf_document)
     except Exception as e:
         st.error(f"Error reading PDF file: {e}", icon="🚨")
         return None
 
-# --- MODIFIED: Upgraded parsing function for new structure ---
 def parse_ai_output(output_text):
+    """Parses the structured output from the AI model."""
     name_match = re.search(r"\[CANDIDATE_NAME\](.*?)\[END_CANDIDATE_NAME\]", output_text, re.DOTALL)
     key_points_match = re.search(r"\[KEY_POINTS\](.*?)\[END_KEY_POINTS\]", output_text, re.DOTALL)
     messages_match = re.search(r"\[OUTREACH_MESSAGES\](.*?)\[EMAIL_MESSAGE\]", output_text, re.DOTALL)
@@ -41,18 +51,35 @@ def parse_ai_output(output_text):
     
     return {"name": name, "key_points": key_points, "short_messages": messages, "long_message": email}
 
-# --- MODIFIED: Reverted to a simpler but functional copy button ---
+# -----------------------------------------------------------------
+# 3. CONFIGURATION AND INITIALIZATION
+# -----------------------------------------------------------------
 
-# ---------- PAGE CONFIG & SETUP ----------
 st.set_page_config(page_title="TalentReach AI", layout="wide")
 local_css("style.css")
+
+# --- User Authentication ---
+try:
+    with open('config.yaml') as file:
+        config = yaml.load(file, Loader=SafeLoader)
+except FileNotFoundError:
+    st.error("`config.yaml` not found. Please create the user configuration file.")
+    st.stop()
+
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days'],
+)
+
+# --- OpenAI Client & Prompt ---
 try:
     client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 except Exception as e:
-    st.error("Error initializing OpenAI client...", icon="🚨")
+    st.error("OpenAI client error. Is your API key set in Streamlit Secrets?", icon="🚨")
     st.stop()
 
-# --- MODIFIED: Complete overhaul of the system prompt based on your feedback ---
 SYSTEM_PROMPT = """
 You are an expert recruitment assistant and persuasive copywriter named "TalentReach AI." 
 Your tone is professional yet enthusiastic, approachable, and genuine. The goal is to start a real conversation.
@@ -119,147 +146,191 @@ Output format:
 (Your email content here)
 """
 
-# --- HEADER ---
-st.markdown('''
-<div style="width:100%; padding:56px 12px 44px 12px; background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 60%); border-bottom: 1px solid rgba(15,23,42,0.04);">
-        <div style="max-width:980px; margin:0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;">
-            <h1 style="margin:0; font-size:48px; line-height:1.1; color:#0b1220; font-weight:600; letter-spacing:0.6px; -webkit-font-smoothing:antialiased;">TalentReach AI</h1>
-            <div style="color:#475569; font-size:18px; font-weight:500;">Generate Personalized Recruiting Messages</div>
-        </div>
-</div>
-''', unsafe_allow_html=True)
-st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+# -----------------------------------------------------------------
+# 4. UI COMPONENTS (MODULAR FUNCTIONS)
+# -----------------------------------------------------------------
 
-left_col, right_col = st.columns([1.2, 1])
-with left_col:
-    # This input section is unchanged from your last working version
-    st.markdown("<h4 style='text-align: center;'>📄 Input Details</h4>", unsafe_allow_html=True)
-    profile_tab1, profile_tab2 = st.tabs(["Upload PDF", "Paste Text"])
-    with profile_tab1:
-        uploaded_candidate_file = st.file_uploader("Upload Candidate Profile or Resume", type=["pdf", "txt"], key="candidate_uploader")
-        with st.expander("ℹ️ How to get a LinkedIn Profile PDF"):
-            st.write("1. Navigate to the LinkedIn profile you want to save.")
-            st.write("2. Click the **'More'** button.")
-            st.image("assets/moreImage.png")
-            st.write("3. Select **'Save to PDF'** from the dropdown menu.")
-    with profile_tab2:
-        candidate_profile_text_input = st.text_area("Paste the candidate's full resume or profile text here", height=250, key="candidate_text", label_visibility="collapsed")
+def show_header():
+    """Displays the main header of the application."""
+    st.markdown('''
+    <div style="width:100%; padding:56px 12px 44px 12px; background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 60%); border-bottom: 1px solid rgba(15,23,42,0.04);">
+            <div style="max-width:980px; margin:0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;">
+                <h1 style="margin:0; font-size:48px; line-height:1.1; color:#0b1220; font-weight:600; letter-spacing:0.6px; -webkit-font-smoothing:antialiased;">TalentReach AI</h1>
+                <div style="color:#475569; font-size:18px; font-weight:500;">Generate Personalized Recruiting Messages</div>
+            </div>
+    </div>
+    ''', unsafe_allow_html=True)
+    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+
+def show_paywall():
+    """Displays the paywall with links to subscribe."""
+    show_header()
+    st.success("✅ You've successfully generated your first outreach package!")
+    st.warning("### Your free generation is complete.")
+    st.markdown("---")
+    st.markdown("<h3 style='text-align: center;'>Subscribe to Continue with a 7-Day Free Trial</h3>", unsafe_allow_html=True)
     
-    jd_tab1, jd_tab2 = st.tabs(["Upload PDF", "Paste Text"])
-    with jd_tab1:
-        uploaded_job_file = st.file_uploader("Upload Job Description", type=["pdf", "txt"], key="job_uploader")
-    with jd_tab2:
-        job_description_text_input = st.text_area("Paste the full job description here", height=250, key="job_text", label_visibility="collapsed")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("#### Monthly Plan")
+        st.markdown("# $9.99 / month")
+        st.link_button("Start Free Trial", "YOUR_STRIPE_MONTHLY_LINK", use_container_width=True)
+    with col2:
+        st.markdown("#### Yearly Plan (Save >15%!)")
+        st.markdown("# $99.99 / year")
+        st.link_button("Start Free Trial", "YOUR_STRIPE_YEARLY_LINK", use_container_width=True)
+
+    st.markdown("<p style='text-align: center; margin-top: 2rem;'>Already subscribed? The login form is at the top of the page.</p>", unsafe_allow_html=True)
+
+
+def run_main_app():
+    """Displays the main application UI and handles the generation logic."""
+    show_header()
     
-    recruiter_name = st.text_input("Your Name (Recruiter)", placeholder="Your Name")
-    company_name = st.text_input("Company Name", placeholder="Your Company")
-    role_title = st.text_input("Role Title", placeholder="e.g., Senior AI Engineer")
-
-
-    generate_button = st.button("✨ Generate Messages", use_container_width=True, type="primary")
-
-# ---------- LOGIC & OUTPUT (RIGHT COLUMN) ----------
-with right_col:
-    st.markdown("<h4 style='text-align: center;'>✍️ Generated Content</h4>", unsafe_allow_html=True)
-
     if 'output' not in st.session_state:
         st.session_state.output = None
 
-    if 'loading' not in st.session_state:
-        st.session_state.loading = False
+    left_col, right_col = st.columns([1.2, 1])
+    
+    # --- LEFT COLUMN (INPUTS) ---
+    with left_col:
+        # This input section is unchanged from your last working version
+        st.markdown("<h4 style='text-align: center;'>📄 Input Details</h4>", unsafe_allow_html=True)
+        profile_tab1, profile_tab2 = st.tabs(["Upload PDF", "Paste Text"])
+        with profile_tab1:
+            uploaded_candidate_file = st.file_uploader("Upload Candidate Profile or Resume", type=["pdf", "txt"], key="candidate_uploader")
+            with st.expander("ℹ️ How to get a LinkedIn Profile PDF"):
+                st.write("1. Navigate to the LinkedIn profile you want to save.")
+                st.write("2. Click the **'More'** button.")
+                st.image("assets/moreImage.png")
+                st.write("3. Select **'Save to PDF'** from the dropdown menu.")
+        with profile_tab2:
+            candidate_profile_text_input = st.text_area("Paste the candidate's full resume or profile text here", height=250, key="candidate_text", label_visibility="collapsed")
+        
+        jd_tab1, jd_tab2 = st.tabs(["Upload PDF", "Paste Text"])
+        with jd_tab1:
+            uploaded_job_file = st.file_uploader("Upload Job Description", type=["pdf", "txt"], key="job_uploader")
+        with jd_tab2:
+            job_description_text_input = st.text_area("Paste the full job description here", height=250, key="job_text", label_visibility="collapsed")
+        
+        recruiter_name = st.text_input("Your Name (Recruiter)", placeholder="Your Name")
+        company_name = st.text_input("Company Name", placeholder="Your Company")
+        role_title = st.text_input("Role Title", placeholder="e.g., Senior AI Engineer")
 
-    if generate_button:
-        st.session_state.output = None
-        candidate_profile, job_description = "", ""
-        # Candidate profile extraction
-        if uploaded_candidate_file:
-            if uploaded_candidate_file.type == "application/pdf":
-                candidate_profile = extract_text_from_pdf(uploaded_candidate_file)
-            elif uploaded_candidate_file.type == "text/plain":
-                candidate_profile = uploaded_candidate_file.read().decode("utf-8")
-        elif candidate_profile_text_input:
-            candidate_profile = candidate_profile_text_input
-        # Job description extraction
-        if uploaded_job_file:
-            if uploaded_job_file.type == "application/pdf":
-                job_description = extract_text_from_pdf(uploaded_job_file)
-            elif uploaded_job_file.type == "text/plain":
-                job_description = uploaded_job_file.read().decode("utf-8")
-        elif job_description_text_input:
-            job_description = job_description_text_input
 
-        missing_fields = []
-        if not candidate_profile or not job_description:
-            missing_fields.append("candidate profile and job description")
-        if not recruiter_name:
-            missing_fields.append("recruiter name")
-        if not company_name:
-            missing_fields.append("company name")
-        if not role_title:
-            missing_fields.append("role title")
+        generate_button = st.button("✨ Generate Messages", use_container_width=True, type="primary")
 
-        if missing_fields:
-            st.warning(f"Please provide: {', '.join(missing_fields)}.", icon="⚠️")
-            st.session_state.output = None # Clear previous output on new attempt with missing info
+    # ---------- LOGIC & OUTPUT (RIGHT COLUMN) ----------
+    with right_col:
+        st.markdown("<h4 style='text-align: center;'>✍️ Generated Content</h4>", unsafe_allow_html=True)
+
+        if 'output' not in st.session_state:
+            st.session_state.output = None
+
+        if 'loading' not in st.session_state:
             st.session_state.loading = False
-        else:
-            st.session_state.loading = True
-            with st.spinner("Working its magic..."):
-                try:
-                    user_prompt = f"""
-                    [CANDIDATE_PROFILE]
-                    {candidate_profile}
-                    [END_CANDIDATE_PROFILE]
-                    [JOB_DESCRIPTION]
-                    {job_description}
-                    [END_JOB_DESCRIPTION]
-                    [RECRUITER_NAME]
-                    {recruiter_name}
-                    [COMPANY_NAME]
-                    {company_name}
-                    [ROLE_TITLE]
-                    {role_title}
-                    """
-                    response = client.chat.completions.create(
-                        model="gpt-4.1-mini",
-                        messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}]
-                    )
-                    raw_output = response.choices[0].message.content
-                    st.session_state.output = parse_ai_output(raw_output)
-                except Exception as e:
-                    st.error(f"An error occurred with the AI model: {e}", icon="🚨")
-                    st.session_state.output = None
+
+        if generate_button:
+            st.session_state.output = None
+            candidate_profile, job_description = "", ""
+            # Candidate profile extraction
+            if uploaded_candidate_file:
+                if uploaded_candidate_file.type == "application/pdf":
+                    candidate_profile = extract_text_from_pdf(uploaded_candidate_file)
+                elif uploaded_candidate_file.type == "text/plain":
+                    candidate_profile = uploaded_candidate_file.read().decode("utf-8")
+            elif candidate_profile_text_input:
+                candidate_profile = candidate_profile_text_input
+            # Job description extraction
+            if uploaded_job_file:
+                if uploaded_job_file.type == "application/pdf":
+                    job_description = extract_text_from_pdf(uploaded_job_file)
+                elif uploaded_job_file.type == "text/plain":
+                    job_description = uploaded_job_file.read().decode("utf-8")
+            elif job_description_text_input:
+                job_description = job_description_text_input
+
+            missing_fields = []
+            if not candidate_profile or not job_description:
+                missing_fields.append("candidate profile and job description")
+            if not recruiter_name:
+                missing_fields.append("recruiter name")
+            if not company_name:
+                missing_fields.append("company name")
+            if not role_title:
+                missing_fields.append("role title")
+
+            if missing_fields:
+                st.warning(f"Please provide: {', '.join(missing_fields)}.", icon="⚠️")
+                st.session_state.output = None # Clear previous output on new attempt with missing info
                 st.session_state.loading = False
+            else:
+                with st.spinner("Working its magic..."):
+                    try:
+                        user_prompt = f"""[CANDIDATE_PROFILE]{candidate_profile}[END_CANDIDATE_PROFILE][JOB_DESCRIPTION]{job_description}[END_JOB_DESCRIPTION][RECRUITER_NAME]{recruiter_name}[COMPANY_NAME]{company_name}[ROLE_TITLE]{role_title}"""
+                        response = client.chat.completions.create(model="gpt-4.1-mini", messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_prompt}])
+                        raw_output = response.choices[0].message.content
+                        st.session_state.output = parse_ai_output(raw_output)
 
-    # Tabs are always visible, even during spinner/loading
-    info_tab, messages_tab, email_tab = st.tabs(["Candidate Info", "Short Messages", "Long Message"])
+                        # CRITICAL: If this was a free user, set the cookie and rerun
+                        if not st.session_state.authentication_status:
+                            authenticator.cookie_manager.set('free_use_consumed', 'true', expires_at=datetime.datetime(year=2030, month=1, day=1))
+                            st.rerun()
 
-    with info_tab:
+                    except Exception as e:
+                        st.error(f"An error occurred: {e}", icon="🚨")
+                        st.session_state.output = None
+                    st.session_state.loading = False
+
+        # Display logic that's always running
+        info_tab, messages_tab, email_tab = st.tabs(["Candidate Info", "Short Messages", "Long Message"])
+        
         if st.session_state.output:
-            st.markdown(f"<h3 style='text-align: center; font-weight: bold;'>{st.session_state.output['name']}</h3>", unsafe_allow_html=True)
-            formatted_points = st.session_state.output["key_points"].replace(":**", ":**\n")
-            st.markdown(formatted_points)
-        elif st.session_state.loading:
-            st.info("Working its magic...")
+            with info_tab:
+                st.markdown(f"<h3 style='text-align: center; font-weight: bold;'>{st.session_state.output['name']}</h3>", unsafe_allow_html=True)
+                formatted_points = st.session_state.output["key_points"].replace(":**", ":**\n")
+                st.markdown(formatted_points)
+            with messages_tab:
+                # Your message display logic...
+                for i, msg in enumerate(st.session_state.output["short_messages"]):
+                    st.markdown(f"<div style='text-align: center; font-weight: bold;'>Option {i+1}</div>", unsafe_allow_html=True)
+                    st.markdown("\n")
+                    st.markdown(msg)
+                    st.divider()
+            with email_tab:
+                # Your email display logic...
+                st.markdown(st.session_state.output["long_message"])
         else:
-            st.info("The candidate's summarized profile will appear here.")
+            with info_tab:
+                st.info("The candidate's summarized profile will appear here.")
+            with messages_tab:
+                st.info("Short message options will appear here.")
+            with email_tab:
+                st.info("A detailed email draft will appear here.")
 
-    with messages_tab:
-        if st.session_state.output and st.session_state.output["short_messages"]:
-            for i, msg in enumerate(st.session_state.output["short_messages"]):
-                st.markdown(f"<div style='text-align: center; font-weight: bold;'>Option {i+1}</div>", unsafe_allow_html=True)
-                st.markdown("\n")
-                st.markdown(msg)
-                st.divider()
-        elif st.session_state.loading:
-            st.info("Working its magic...")
-        else:
-            st.info("Short message options for LinkedIn will appear here.")
+# -----------------------------------------------------------------
+# 5. MAIN ROUTER
+# -----------------------------------------------------------------
 
-    with email_tab:
-        if st.session_state.output and st.session_state.output["long_message"]:
-            st.markdown(st.session_state.output["long_message"])
-        elif st.session_state.loading:
-            st.info("Working its magic...")
-        else:
-            st.info("A detailed outreach email draft will appear here.")
+# The login form must be at the top level of the script
+name, authentication_status, username = authenticator.login('main')
+
+if authentication_status:
+    # --- USER IS LOGGED IN ---
+    with st.sidebar:
+        st.title(f"Welcome {name}!")
+        authenticator.logout('Logout', 'main')
+    run_main_app()
+
+elif authentication_status == False:
+    # --- FAILED LOGIN ---
+    st.error('Username/password is incorrect')
+
+elif authentication_status == None:
+    # --- NO ONE IS LOGGED IN (NEW OR GATED VISITOR) ---
+    free_use_consumed = authenticator.cookie_manager.get('free_use_consumed')
+    
+    if free_use_consumed:
+        show_paywall()
+    else:
+        run_main_app()
