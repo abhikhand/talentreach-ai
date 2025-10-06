@@ -3,3 +3,4 @@ openai
 PyMuPDF
 streamlit-authenticator==0.3.2
 bcrypt
+streamlit-cookies-manager

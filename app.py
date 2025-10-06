@@ -9,6 +9,7 @@ import yaml
 import streamlit_authenticator as stauth
 import datetime
 from yaml.loader import SafeLoader
+from streamlit_cookies_manager import EncryptedCookieManager # CORRECT IMPORT
 
 # -----------------------------------------------------------------
 # 2. HELPER FUNCTIONS
@@ -66,6 +67,7 @@ except FileNotFoundError:
     st.error("`config.yaml` not found. Please create the user configuration file.")
     st.stop()
 
+cookies = EncryptedCookieManager(password=config['cookie']['key'])
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
@@ -274,7 +276,7 @@ def run_main_app():
 
                         # CRITICAL: If this was a free user, set the cookie and rerun
                         if not st.session_state.authentication_status:
-                            authenticator.cookie_manager.set('free_use_consumed', 'true', expires_at=datetime.datetime(year=2030, month=1, day=1))
+                            cookies['free_use_consumed'] = 'true'
                             st.rerun()
 
                     except Exception as e:
@@ -314,6 +316,7 @@ def run_main_app():
 
 # The login form must be at the top level of the script
 name, authentication_status, username = authenticator.login('main')
+st.session_state['authentication_status'] = authentication_status
 
 if authentication_status:
     # --- USER IS LOGGED IN ---
@@ -328,9 +331,7 @@ elif authentication_status == False:
 
 elif authentication_status == None:
     # --- NO ONE IS LOGGED IN (NEW OR GATED VISITOR) ---
-    free_use_consumed = authenticator.cookie_manager.get('free_use_consumed')
-    
-    if free_use_consumed:
+    if cookies.get('free_use_consumed') == 'true':
         show_paywall()
     else:
         run_main_app()
