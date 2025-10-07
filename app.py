@@ -167,20 +167,23 @@ def show_header():
 def show_paywall():
     """Displays the paywall with links to subscribe."""
     show_header()
-    st.success("✅ You've successfully generated your first outreach package!")
-    st.warning("### Your free generation is complete.")
+    st.warning("### Your free generations are complete.")
     st.markdown("---")
-    st.markdown("<h3 style='text-align: center;'>Subscribe to Continue with a 7-Day Free Trial</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Subscribe to Continue with Unlimited Generations!</h3>", unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("#### Monthly Plan")
-        st.markdown("# $9.99 / month")
-        st.link_button("Start Free Trial", "YOUR_STRIPE_MONTHLY_LINK", use_container_width=True)
+        st.markdown('<div style="text-align:center;">'
+            '<div style="font-size:1.1rem; font-weight:600; margin-bottom:0.2em;">Monthly Plan</div>'
+            '<div style="font-size:2rem; font-weight:700; margin-bottom:0.5em;">$9.99 / month</div>'
+            '</div>', unsafe_allow_html=True)
+        st.link_button("Start Monthly Plan", "https://buy.stripe.com/aFa00j9Oq1L63SmgaV2kw00", use_container_width=True)
     with col2:
-        st.markdown("#### Yearly Plan (Save >15%!)")
-        st.markdown("# $99.99 / year")
-        st.link_button("Start Free Trial", "YOUR_STRIPE_YEARLY_LINK", use_container_width=True)
+        st.markdown('<div style="text-align:center;">'
+            '<div style="font-size:1.1rem; font-weight:600; margin-bottom:0.2em;">Yearly Plan (Save &gt;15%!)</div>'
+            '<div style="font-size:2rem; font-weight:700; margin-bottom:0.5em;">$99.99 / year</div>'
+            '</div>', unsafe_allow_html=True)
+        st.link_button("Start Yearly Plan", "https://buy.stripe.com/bJecN51hU1L63SmaQB2kw02", use_container_width=True)
 
     st.markdown("<p style='text-align: center; margin-top: 2rem;'>Already subscribed? The login form is at the top of the page.</p>", unsafe_allow_html=True)
 
@@ -276,7 +279,11 @@ def run_main_app():
 
                         # CRITICAL: If this was a free user, set the cookie and rerun
                         if not st.session_state.authentication_status:
-                            cookies['free_use_consumed'] = 'true'
+                            # Get the current count again before incrementing
+                            current_count = int(cookies.get('generation_count', 0))
+                            new_count = current_count + 1
+                            # Save the new count back to the cookie
+                            cookies['generation_count'] = str(new_count)
                             st.rerun()
 
                     except Exception as e:
@@ -328,10 +335,16 @@ if authentication_status:
 elif authentication_status == False:
     # --- FAILED LOGIN ---
     st.error('Username/password is incorrect')
+    show_paywall()
 
 elif authentication_status == None:
     # --- NO ONE IS LOGGED IN (NEW OR GATED VISITOR) ---
-    if cookies.get('free_use_consumed') == 'true':
+    # Get the current generation count from the cookie, default to 0 if not found
+    generation_count = int(cookies.get('generation_count', 0))
+
+    if generation_count > 3:
         show_paywall()
     else:
+        # Display the remaining count for the user
+        st.info(f"You have {3 - generation_count} free generations remaining.")
         run_main_app()
