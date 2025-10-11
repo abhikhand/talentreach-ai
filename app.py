@@ -76,6 +76,8 @@ cookie_config = {
     'name': st.secrets['cookie']['name']
 }
 
+cookies = EncryptedCookieManager(password=cookie_config['cookie']['key'])
+
 authenticator = stauth.Authenticate(
     credentials,
     cookie_config['name'],
