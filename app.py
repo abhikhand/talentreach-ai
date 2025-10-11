@@ -60,17 +60,26 @@ st.set_page_config(page_title="TalentReach AI", layout="wide")
 local_css("style.css")
 
 # --- User Authentication ---
+# Manually build a new, mutable dictionary from Streamlit's secrets
+# This is the definitive fix to avoid the "Secrets does not support item assignment" error.
 config = {
-    'credentials': dict(st.secrets['credentials']),
-    'cookie': dict(st.secrets['cookie'])
+    'credentials': {
+        'usernames': dict(st.secrets['credentials']['usernames'])
+    },
+    'cookie': {
+        'expiry_days': st.secrets['cookie']['expiry_days'],
+        'key': st.secrets['cookie']['key'],
+        'name': st.secrets['cookie']['name']
+    }
 }
 
 cookies = EncryptedCookieManager(password=config['cookie']['key'])
+
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
     config['cookie']['key'],
-    config['cookie']['expiry_days'],
+    config['cookie']['expiry_days']
 )
 
 # --- OpenAI Client & Prompt ---
