@@ -60,12 +60,7 @@ st.set_page_config(page_title="TalentReach AI", layout="wide")
 local_css("style.css")
 
 # --- User Authentication ---
-try:
-    with open('config.yaml') as file:
-        config = yaml.load(file, Loader=SafeLoader)
-except FileNotFoundError:
-    st.error("`config.yaml` not found. Please create the user configuration file.")
-    st.stop()
+config = st.secrets
 
 cookies = EncryptedCookieManager(password=config['cookie']['key'])
 authenticator = stauth.Authenticate(
