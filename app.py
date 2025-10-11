@@ -61,8 +61,8 @@ local_css("style.css")
 
 # --- User Authentication ---
 config = {
-    'credentials': st.secrets['credentials'],
-    'cookie': st.secrets['cookie']
+    'credentials': dict(st.secrets['credentials']),
+    'cookie': dict(st.secrets['cookie'])
 }
 
 cookies = EncryptedCookieManager(password=config['cookie']['key'])
