@@ -62,24 +62,25 @@ local_css("style.css")
 # --- User Authentication ---
 # Manually build a new, mutable dictionary from Streamlit's secrets
 # This is the definitive fix to avoid the "Secrets does not support item assignment" error.
-config = {
-    'credentials': {
-        'usernames': dict(st.secrets['credentials']['usernames'])
-    },
-    'cookie': {
-        'expiry_days': st.secrets['cookie']['expiry_days'],
-        'key': st.secrets['cookie']['key'],
-        'name': st.secrets['cookie']['name']
+credentials = {'usernames': {}}
+for username, user_info in st.secrets['credentials']['usernames'].items():
+    credentials['usernames'][username] = {
+        'email': user_info['email'],
+        'name': user_info['name'],
+        'password': user_info['password']
     }
+
+cookie_config = {
+    'expiry_days': st.secrets['cookie']['expiry_days'],
+    'key': st.secrets['cookie']['key'],
+    'name': st.secrets['cookie']['name']
 }
 
-cookies = EncryptedCookieManager(password=config['cookie']['key'])
-
 authenticator = stauth.Authenticate(
-    config['credentials'],
-    config['cookie']['name'],
-    config['cookie']['key'],
-    config['cookie']['expiry_days']
+    credentials,
+    cookie_config['name'],
+    cookie_config['key'],
+    cookie_config['expiry_days']
 )
 
 # --- OpenAI Client & Prompt ---
