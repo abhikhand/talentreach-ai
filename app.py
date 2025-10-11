@@ -60,7 +60,10 @@ st.set_page_config(page_title="TalentReach AI", layout="wide")
 local_css("style.css")
 
 # --- User Authentication ---
-config = st.secrets
+config = {
+    'credentials': st.secrets['credentials'],
+    'cookie': st.secrets['cookie']
+}
 
 cookies = EncryptedCookieManager(password=config['cookie']['key'])
 authenticator = stauth.Authenticate(
