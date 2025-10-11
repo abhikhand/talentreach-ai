@@ -70,19 +70,15 @@ for username, user_info in st.secrets['credentials']['usernames'].items():
         'password': user_info['password']
     }
 
-cookie_config = {
-    'expiry_days': st.secrets['cookie']['expiry_days'],
-    'key': st.secrets['cookie']['key'],
-    'name': st.secrets['cookie']['name']
-}
+# Initialize the cookie manager directly with the secret key
+cookies = EncryptedCookieManager(password=st.secrets['cookie']['key'])
 
-cookies = EncryptedCookieManager(password=cookie_config['cookie']['key'])
-
+# Initialize the authenticator with values directly from secrets
 authenticator = stauth.Authenticate(
     credentials,
-    cookie_config['name'],
-    cookie_config['key'],
-    cookie_config['expiry_days']
+    st.secrets['cookie']['name'],
+    st.secrets['cookie']['key'],
+    st.secrets['cookie']['expiry_days']
 )
 
 # --- OpenAI Client & Prompt ---
