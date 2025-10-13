@@ -57,6 +57,23 @@ def parse_ai_output(output_text):
 # -----------------------------------------------------------------
 
 st.set_page_config(page_title="TalentReach AI", layout="wide")
+
+# --- SEO meta + visible landing copy for discoverability ---
+st.markdown("""
+<meta name="description" content="TalentReach AI helps recruiters instantly generate personalized candidate outreach messages, long emails, and candidate summaries. Upload a resume and job description — get ready-to-send outreach in seconds.">
+<meta name="keywords" content="AI recruiter tool, candidate email generator, recruitment AI, hiring outreach, talent sourcing, recruiter automation">
+""", unsafe_allow_html=True)
+
+# Optional visible short landing paragraph (helps both users & search engines)
+st.markdown("""
+<div style="max-width:900px; margin:20px auto 10px auto; text-align:center;">
+  <h2 style="margin:0; font-weight:600;">TalentReach AI — AI Outreach for Recruiters</h2>
+  <p style="color:#475569; font-size:15px;">
+    Upload a candidate resume and job description, and get 3 short outreach messages, a full email draft, and a candidate summary — in seconds. Try 3 free generations.
+  </p>
+</div>
+""", unsafe_allow_html=True)
+
 local_css("style.css")
 
 # --- User Authentication ---
