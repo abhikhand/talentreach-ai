@@ -383,3 +383,29 @@ elif authentication_status == None:
         # Display the remaining count for the user
         st.info(f"You have {3 - generation_count} free generations remaining.")
         run_main_app()
+
+# -----------------------------------------------------------------
+# SUCCESS PAGE FOR STRIPE CHECKOUT REDIRECT
+# -----------------------------------------------------------------
+import urllib.parse
+
+query_params = st.experimental_get_query_params()
+if "success" in query_params:
+    st.markdown("""
+        <h2 style='text-align:center; color:#10B981;'>✅ Payment Successful</h2>
+        <p style='text-align:center;'>Thank you for subscribing to TalentReach AI! You now have unlimited generations.</p>
+    """, unsafe_allow_html=True)
+
+    # Fire the Google Ads conversion event
+    st.markdown("""
+    <!-- Google Ads Conversion Tracking -->
+    <script>
+      gtag('event', 'conversion', {
+          'send_to': 'AW-17647077518/e4h9CJS3hqwbEI6R5N5B',
+          'value': 1.0,
+          'currency': 'USD'
+      });
+    </script>
+    """, unsafe_allow_html=True)
+
+    st.stop()
