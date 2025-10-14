@@ -389,7 +389,7 @@ elif authentication_status == None:
 # -----------------------------------------------------------------
 import urllib.parse
 
-query_params = st.experimental_get_query_params()
+query_params = st.query_params()
 if "success" in query_params:
     st.markdown("""
         <h2 style='text-align:center; color:#10B981;'>✅ Payment Successful</h2>
