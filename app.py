@@ -58,7 +58,19 @@ def parse_ai_output(output_text):
 
 st.set_page_config(page_title="TalentReach AI", layout="wide")
 
-# --- SEO meta + visible landing copy for discoverability ---
+# --- Google Ads tracking tag ---
+st.markdown("""
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17647077518"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17647077518');
+</script>
+""", unsafe_allow_html=True)
+
+# --- SEO meta + visible landing copy for discoverability ---    
 st.markdown("""
 <meta name="description" content="TalentReach AI helps recruiters instantly generate personalized candidate outreach messages, long emails, and candidate summaries. Upload a resume and job description — get ready-to-send outreach in seconds.">
 <meta name="keywords" content="AI recruiter tool, candidate email generator, recruitment AI, hiring outreach, talent sourcing, recruiter automation">
